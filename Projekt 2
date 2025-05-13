@@ -9,7 +9,7 @@ using namespace std::chrono;
 
 template<typename PQ>
 void benchmark(const vector<pair<int, int>>& items, const string& name) {
-    PQ pq;  // świeża instancja kolejki dla każdego benchmarku
+    PQ pq;
 
     auto start = high_resolution_clock::now();
     for (auto& it : items) {
