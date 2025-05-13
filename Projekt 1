@@ -1,1 +1,252 @@
-#include<iostream>
+#include <iostream>
+#include <chrono>
+using namespace std;
+using namespace chrono;
+
+
+class DynamicArray {
+    int* arr;
+    int capacity;
+    int size;
+
+public:
+    DynamicArray() {
+        capacity = 10;
+        size = 0;
+        arr = new int[capacity];
+    }
+
+    void resize() {
+        capacity *= 2;
+        int* newArr = new int[capacity];
+        for (int i = 0; i < size; ++i)
+            newArr[i] = arr[i];
+        delete[] arr;
+        arr = newArr;
+    }
+
+    void addFront(int val) {
+        if (size >= capacity)
+            resize();
+        for (int i = size; i > 0; --i)
+            arr[i] = arr[i - 1];
+        arr[0] = val;
+        size++;
+    }
+
+    void addBack(int val) {
+        if (size >= capacity)
+            resize();
+        arr[size++] = val;
+    }
+
+    void addAt(int index, int val) {
+        if (size >= capacity)
+            resize();
+        for (int i = size; i > index; --i)
+            arr[i] = arr[i - 1];
+        arr[index] = val;
+        size++;
+    }
+
+    void removeFront() {
+        for (int i = 0; i < size - 1; ++i)
+            arr[i] = arr[i + 1];
+        size--;
+    }
+
+    void removeBack() {
+        if (size > 0)
+            size--;
+    }
+
+    void removeAt(int index) {
+        for (int i = index; i < size - 1; ++i)
+            arr[i] = arr[i + 1];
+        size--;
+    }
+
+    int search(int val) {
+        for (int i = 0; i < size; ++i)
+            if (arr[i] == val)
+                return i;
+        return -1;
+    }
+
+    int getSize() const {
+        return size;
+    }
+
+    ~DynamicArray() {
+        delete[] arr;
+    }
+};
+
+
+struct Node {
+    int data;
+    Node* next;
+    Node(int val) : data(val), next(nullptr) {}
+};
+
+class LinkedList {
+    Node* head;
+
+public:
+    LinkedList() : head(nullptr) {}
+
+    void addFront(int val) {
+        Node* newNode = new Node(val);
+        newNode->next = head;
+        head = newNode;
+    }
+
+    void addBack(int val) {
+        Node* newNode = new Node(val);
+        if (!head) {
+            head = newNode;
+            return;
+        }
+        Node* temp = head;
+        while (temp->next)
+            temp = temp->next;
+        temp->next = newNode;
+    }
+
+    void addAt(int index, int val) {
+        if (index == 0) {
+            addFront(val);
+            return;
+        }
+        Node* newNode = new Node(val);
+        Node* temp = head;
+        for (int i = 0; i < index - 1 && temp; ++i)
+            temp = temp->next;
+        if (!temp) return;
+        newNode->next = temp->next;
+        temp->next = newNode;
+    }
+
+    void removeFront() {
+        if (!head) return;
+        Node* temp = head;
+        head = head->next;
+        delete temp;
+    }
+
+    void removeBack() {
+        if (!head) return;
+        if (!head->next) {
+            delete head;
+            head = nullptr;
+            return;
+        }
+        Node* temp = head;
+        while (temp->next->next)
+            temp = temp->next;
+        delete temp->next;
+        temp->next = nullptr;
+    }
+
+    void removeAt(int index) {
+        if (index == 0) {
+            removeFront();
+            return;
+        }
+        Node* temp = head;
+        for (int i = 0; i < index - 1 && temp; ++i)
+            temp = temp->next;
+        if (!temp || !temp->next) return;
+        Node* toDelete = temp->next;
+        temp->next = temp->next->next;
+        delete toDelete;
+    }
+
+    int search(int val) {
+        Node* temp = head;
+        int index = 0;
+        while (temp) {
+            if (temp->data == val)
+                return index;
+            temp = temp->next;
+            index++;
+        }
+        return -1;
+    }
+
+    ~LinkedList() {
+        while (head)
+            removeFront();
+    }
+};
+
+
+int main() {
+    const int N = 100000;
+
+    auto test = [](auto& structure, auto func, const string& label) {
+        auto start = high_resolution_clock::now();
+        func();
+        auto end = high_resolution_clock::now();
+        cout << label << ": " << duration_cast<microseconds>(end - start).count() << " micro sec" << endl;
+        };
+
+    // Dodawanie
+    DynamicArray darr1;
+    LinkedList llist1;
+    test(darr1, [&]() { for (int i = 0; i < N; ++i) darr1.addFront(i); }, "Array addFront");
+    test(llist1, [&]() { for (int i = 0; i < N; ++i) llist1.addFront(i); }, "List addFront");
+
+    DynamicArray darr2;
+    LinkedList llist2;
+    test(darr2, [&]() { for (int i = 0; i < N; ++i) darr2.addBack(i); }, "Array addBack");
+    test(llist2, [&]() { for (int i = 0; i < N; ++i) llist2.addBack(i); }, "List addBack");
+
+    DynamicArray darr3;
+    LinkedList llist3;
+    test(darr3, [&]() { for (int i = 0; i < 100; ++i) darr3.addAt(i / 2, i); }, "Array addAt index");
+    test(llist3, [&]() { for (int i = 0; i < 100; ++i) llist3.addAt(i / 2, i); }, "List addAt index");
+
+    // Usuwanie z początku
+    test(darr2, [&]() { for (int i = 0; i < 100; ++i) darr2.removeFront(); }, "Array removeFront");
+    test(llist2, [&]() { for (int i = 0; i < 100; ++i) llist2.removeFront(); }, "List removeFront");
+
+    // Usuwanie z końca
+    DynamicArray darr4;
+    LinkedList llist4;
+    for (int i = 0; i < 1000; ++i) {
+        darr4.addBack(i);
+        llist4.addBack(i);
+    }
+    test(darr4, [&]() { for (int i = 0; i < 1000; ++i) darr4.removeBack(); }, "Array removeBack");
+    test(llist4, [&]() { for (int i = 0; i < 1000; ++i) llist4.removeBack(); }, "List removeBack");
+
+    // Usuwanie z indeksu
+    DynamicArray darr5;
+    LinkedList llist5;
+    for (int i = 0; i < 1000; ++i) {
+        darr5.addBack(i);
+        llist5.addBack(i);
+    }
+    test(darr5, [&]() {
+        while (darr5.getSize() > 0)
+            darr5.removeAt(darr5.getSize() / 2);
+        }, "Array removeAt (middle)");
+
+    test(llist5, [&]() {
+        for (int i = 0; i < 500; ++i)
+            llist5.removeAt(i / 2);
+        }, "List removeAt (middle)");
+
+    // Wyszukiwanie
+    DynamicArray darr6;
+    LinkedList llist6;
+    for (int i = 0; i < N; ++i) {
+        darr6.addBack(i);
+        llist6.addBack(i);
+    }
+    test(darr6, [&]() { darr6.search(N / 2); }, "Array search");
+    test(llist6, [&]() { llist6.search(N / 2); }, "List search");
+
+    return 0;
+}
