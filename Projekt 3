@@ -1,0 +1,126 @@
+#include <iostream>
+#include <vector>
+#include <list>
+#include <chrono>
+#include <functional>
+#include <cstdlib>
+
+using namespace std;
+using namespace chrono;
+
+int hashFunc1(int key, int size) {
+    if (size == 0) return 0;
+    return key % size;
+}
+
+int hashFunc2(int key, int size) {
+    if (size == 0) return 0;
+    return (key * 2654435761u) % size;
+}
+
+int hashFunc3(int key, int size) {
+    if (size == 0) return 0;
+    key = ((key >> 16) ^ key) * 0x45d9f3b;
+    key = ((key >> 16) ^ key) * 0x45d9f3b;
+    key = (key >> 16) ^ key;
+    return key % size;
+}
+
+class HashTable {
+    int size;
+    vector<list<int>> table;
+    function<int(int, int)> hashFunction;
+
+public:
+    HashTable(int size, function<int(int, int)> hashFunc) : size(size), hashFunction(hashFunc) {
+        if (size <= 0) throw invalid_argument("Rozmiar tablicy musi być > 0");
+        table.resize(size);
+    }
+
+    void insert(int key) {
+        int idx = hashFunction(key, size);
+        for (int val : table[idx])
+            if (val == key) return;
+        table[idx].push_back(key);
+    }
+
+    void remove(int key) {
+        int idx = hashFunction(key, size);
+        table[idx].remove(key);
+    }
+
+    bool contains(int key) {
+        int idx = hashFunction(key, size);
+        for (int val : table[idx])
+            if (val == key) return true;
+        return false;
+    }
+
+    void clear() {
+        for (auto& lst : table)
+            lst.clear();
+    }
+};
+
+template<typename Func>
+long long measure(Func f) {
+    auto start = high_resolution_clock::now();
+    f();
+    auto end = high_resolution_clock::now();
+    return duration_cast<nanoseconds>(end - start).count();
+}
+
+void runTests(HashTable& ht, vector<int>& data, const string& caseName) {
+    cout << "=== " << caseName << " ===" << endl;
+
+    auto insertTime = measure([&]() {
+        for (int val : data)
+            ht.insert(val);
+        });
+
+    auto deleteTime = measure([&]() {
+        for (int val : data)
+            ht.remove(val);
+        });
+
+    cout << "Czas dodawania: " << insertTime << " ns" << endl;
+    cout << "Czas usuwania:  " << deleteTime << " ns" << endl << endl;
+
+    ht.clear();
+}
+
+int main() {
+    const int tableSize = 1009;
+    const int dataSize = 10000;
+
+    vector<int> optimistic;
+    vector<int> average;
+    vector<int> pessimistic;
+
+    for (int i = 0; i < dataSize; i++)
+        optimistic.push_back(i * 100);
+
+    srand(42);
+    for (int i = 0; i < dataSize; i++)
+        average.push_back(rand());
+
+    for (int i = 0; i < dataSize; i++)
+        pessimistic.push_back(i * tableSize);
+
+    vector<pair<string, function<int(int, int)>>> hashFuncs = {
+        {"Hash 1: key % size", hashFunc1},
+        {"Hash 2: Knuth", hashFunc2},
+        {"Hash 3: BitMix", hashFunc3}
+    };
+
+    for (auto& hf : hashFuncs) {
+        cout << ">>> Funkcja haszująca: " << hf.first << endl;
+        HashTable ht(tableSize, hf.second);
+
+        runTests(ht, optimistic, "Przypadek optymistyczny");
+        runTests(ht, average, "Przypadek sredni");
+        runTests(ht, pessimistic, "Przypadek pesymistyczny");
+    }
+
+    return 0;
+}
